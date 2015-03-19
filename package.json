@@ -48,5 +48,50 @@
     "test": "test"
   },
   "devDependencies": {},
-  "license": "ISC"
+  "license": "ISC",
+  "mozfetcher": {
+    "linux": {
+      "x64": {
+        "url": "http://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/36.0.1/sdk/xulrunner-36.0.1.en-US.linux-x86_64.sdk.tar.bz2",
+        "md5": "3c11f92fa6b2dac17de8a76cb6bbde91",
+        "bin": {
+          "path": "xulrunner-sdk/bin/xulrunner"
+        }
+      },
+      "x32": {
+        "url": "http://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/36.0.1/sdk/xulrunner-36.0.1.en-US.linux-i686.sdk.tar.bz2",
+        "md5": "a6abc71ec9e81cbdbfc56bc453e3f988",
+        "bin": {
+          "path": "xulrunner-sdk/bin/xulrunner"
+        }
+      }
+    },
+    "osx": {
+      "all": {
+        "url": "http://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/36.0.1/sdk/xulrunner-36.0.1.en-US.mac-x86_64.sdk.tar.bz2",
+        "md5": "a6f9aaf869ffe354b33ecb855a5cb884",
+        "bin": {
+          "path": "xulrunner-sdk/bin/XUL.framework/Versions/Current/xulrunner"
+        }
+      }
+    },
+    "win": {
+      "all": {
+        "url": "http://ftp.mozilla.org/pub/mozilla.org/xulrunner/releases/36.0.1/sdk/xulrunner-36.0.1.en-US.win32.sdk.zip",
+        "md5": "adf0d81356bd390cf2ad4442350a74d1",
+        "bin": {
+          "path": "xulrunner-sdk/bin/xulrunner.exe"
+        }
+      }
+    }
+  },
+  "modules": [
+    {
+      "prefix": [""],
+      "path": ["modules/sdk"],
+      "exclude": [],
+      "include": [],
+      "preprocess": ["api-utils.js", "ui.js"]
+    }
+  ]
 }

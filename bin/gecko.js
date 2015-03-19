@@ -32,7 +32,7 @@ commander
                   "'windows', 'linux' and 'osx'", Util.sanitizeOS, Util.sanitizeOS())
   .option('-c, check', 'Check Build & Package dependencies')
   .option('-v, --verbose', 'Show verbose logging information.')
-  .option('--apps [path]' , 'The running application path list, app1Path:app2Path:app3Path', Util.sanitizeApps, Util.sanitizeApps())
+  .option('--app [path]' , 'The running application directory.', Util.sanitizeApp)
   .on('--help', function() {
     console.log('  Gecko Shell v' + commander._version +'\n');
   })
@@ -85,21 +85,13 @@ Mkdirp(buildDir, function(err) {
       process.exit();
     });
   } else {
-    // Each app will be process for each OS specified through the command line.
-    // First we'll do a basic check if the app directories exist:
-    argv.apps.forEach(function(appPath) {
-      // Throw an error message if we can't figure out what html file is the app's
-      // HTML entry point
-      if (!Fs.existsSync(appPath))
-        exitWithError("Can't find app HTML (tried '" + appPath + "')");
-    });
-
     var runOptions = {};
 
     // Then we'll check if the necessary xulrunner is present for all OSes to build:
     Async.eachSeries(argv.os,
       function(os, nextOS) {
-        var fetcher = new Mozfetcher(buildDir, os.platform, os.arch);
+        os.manifest = Manifest;
+        var fetcher = new Mozfetcher(os, buildDir, os.platform, os.arch);
         // Tack path to the xulrunner executable on `os`, to reuse later in run()!
         os.xulrunnerPath = fetcher.getXulrunnerPath();
         os.unpackDir = fetcher.getUnpackDir();
