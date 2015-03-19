@@ -85,23 +85,26 @@ Mkdirp(buildDir, function(err) {
       process.exit();
     });
   } else {
-    var runOptions = {};
+    var runOS = null;
 
     // Then we'll check if the necessary xulrunner is present for all OSes to build:
     Async.eachSeries(argv.os,
       function(os, nextOS) {
         os.manifest = Manifest;
-        var fetcher = new Mozfetcher(os, buildDir, os.platform, os.arch);
+
+        os.buildRoot = Path.normalize(buildDir || Path.join(__dirname, '..'));
+        var fetcher = new Mozfetcher(os);
         // Tack path to the xulrunner executable on `os`, to reuse later in run()!
         os.xulrunnerPath = fetcher.getXulrunnerPath();
+        os.platform = Util.getPlatform(os.platform);
+        os.arch = os.arch || process.arch;
         os.unpackDir = fetcher.getUnpackDir();
         os.buildDir = os.unpackDir + '.build'
 
         fetcher.fetchIfNeeded(function() {
           Build.appify(os, argv.verbose, nextOS);
           if (os.platform == Util.getPlatform()) {
-            runOptions.os = os;
-            runOptions.buildDir  = buildDir;
+            runOS = os;
           }
         });
       },
@@ -109,15 +112,15 @@ Mkdirp(buildDir, function(err) {
         if (err)
           exitWithError(err);
         console.log("Building finished");
-        run(runOptions);
+        run(runOS);
       }
     );
   }
 });
 
-function run(runOptions) {
-  console.log("Start running:" + JSON.stringify(runOptions));
-  var finalBinaryPath = runOptions.os.finalBinaryPath;
+function run(runOS) {
+  console.log("Start running:" + JSON.stringify(runOS));
+  var finalBinaryPath = runOS.finalBinaryPath;
 
   var child = child_process.spawn(finalBinaryPath, argv.args, {
     detached: true,
