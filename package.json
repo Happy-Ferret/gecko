@@ -4,9 +4,13 @@
   },
   "name": "chromeless2",
   "contributors": [
+    "Yonggang Luo <luoyonggang@gmail.com>",
     "Mike de Boer <mdeboer@mozilla.com>"
   ],
-  "author": "Mike de Boer <mdeboer@mozilla.com>",
+  "author": [
+    "Yonggang Luo <luoyonggang@gmail.com>",
+    "Mike de Boer <mdeboer@mozilla.com>"
+  ],
   "repository": {
     "url": "http://github.com/mikedeboer/chromeless2.git",
     "type": "git"
