@@ -16,36 +16,36 @@ var Mozfetcher = require("../lib/mozfetcher");
 var Build = require("../lib/build");
 var DepsCheck = require("../lib/depscheck");
 
-var Optimist = require("optimist");
-var Manifest = JSON.parse(Fs.readFileSync("package.json", "utf8"));
-var argv = Optimist
-  .wrap(80)
-  .usage("Chromeless v" + Manifest.version + "\n" +
-         "Build, run or package an application using the latest Mozilla " +
-         "technologies.\nUsage: $0 /path/to/app")
-  .alias("b", "build")
-  .default("b", true)
-  .describe("b", "Build an app for the current OS. Simplest option, as this " +
+var commander = require('commander');
+
+var Manifest = JSON.parse(Fs.readFileSync(Path.join(__dirname, '..', "package.json"), "utf8"));
+
+commander
+  .version(Manifest.version)
+  .description('Build, run or package an application using the latest Mozilla technologies.')
+  .option('-b, --no-build', "Build an app for the current OS. Simplest option, as this " +
                  "will not run or create a distributable package.")
-  .alias("r", "run")
-  .describe("r", "Build & run an app for the current OS. This option will not " +
+  .option('-r, --run', "Build & run an app for the current OS. This option will not " +
                  "create a distributable package.")
-  .alias("p", "package")
-  .describe("p", "Build & package an app for the current OS.")
-  .describe("os", "Operating System to build an app for. Possible options are: " +
-                  "'windows', 'linux' and 'osx'")
-  .default("os", Util.getPlatform())
-  .alias("c", "check")
-  .describe("c", "Check Build & Package dependencies")
-  .alias("h", "help")
-  .describe("h", "Show this help message.")
-  .alias("v", "verbose")
-  .describe("v", "Show verbose logging information.")
-  .boolean(["b", "r", "p", "c", "h", "v"])
-  .argv;
+  .option('-p, --package', 'Build & package an app for the current OS.')
+  .option('--os <os>', "Operating System to build an app for. Possible options are: " +
+                  "'windows', 'linux' and 'osx'", Util.sanitizeOS, Util.sanitizeOS())
+  .option('-c, check', 'Check Build & Package dependencies')
+  .option('-v, --verbose', 'Show verbose logging information.')
+  .option('--apps [path]' , 'The running application path list, app1Path:app2Path:app3Path', Util.sanitizeApps, Util.sanitizeApps())
+  .on('--help', function() {
+    console.log('  Gecko Shell v' + commander._version +'\n');
+  })
+
+var argv = commander.parse(process.argv);
+
+//argv.options = undefined;
+//argv.rawArgs = undefined;
+//argv.args = undefined;
+//console.log(argv)
 
 // Thoroughly sanitize the CLI arguments:
-argv = Util.sanitizeArguments(argv);
+Util.sanitizeArguments(argv);
 
 // Exit handler
 function onExit(ex) {
@@ -59,10 +59,6 @@ function onExit(ex) {
 process.on("exit", onExit);
 process.on("UncaughtException", onExit);
 
-if (argv.help) {
-  console.log(Optimist.help());
-  process.exit();
-}
 
 function exitWithError(err, code) {
   if (err)
@@ -144,7 +140,7 @@ function runApp(runOptions) {
   console.log("Start running:" + JSON.stringify(runOptions));
   var finalBinaryPath = runOptions.os.finalBinaryPath;
 
-  var child = child_process.spawn(finalBinaryPath, ['-jsconsole', '-purgecaches'], {
+  var child = child_process.spawn(finalBinaryPath, argv.args, {
     detached: true,
     env: process.env,
     cwd: Path.dirname(finalBinaryPath),

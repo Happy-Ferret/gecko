@@ -1,2 +1,2 @@
-node bin\gecko.js -r
+node bin\gecko.js -r -- -purgecaches -jsconsole
 pause
