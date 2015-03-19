@@ -94,49 +94,36 @@ Mkdirp(buildDir, function(err) {
         exitWithError("Can't find app HTML (tried '" + appPath + "')");
     });
 
+    var runOptions = {};
+
     // Then we'll check if the necessary xulrunner is present for all OSes to build:
     Async.eachSeries(argv.os,
       function(os, nextOS) {
         var fetcher = new Mozfetcher(buildDir, os.platform, os.arch);
         // Tack path to the xulrunner executable on `os`, to reuse later in run()!
         os.xulrunnerPath = fetcher.getXulrunnerPath();
+        os.unpackDir = fetcher.getUnpackDir();
+        os.buildDir = os.unpackDir + '.build'
 
-        fetcher.fetchIfNeeded(nextOS);
+        fetcher.fetchIfNeeded(function() {
+          Build.appify(os, argv.verbose, nextOS);
+          if (os.platform == Util.getPlatform()) {
+            runOptions.os = os;
+            runOptions.buildDir  = buildDir;
+          }
+        });
       },
       function(err) {
         if (err)
           exitWithError(err);
-        run();
-      });
+        console.log("Building finished");
+        run(runOptions);
+      }
+    );
   }
 });
 
-function run() {
-  // DONE! Alright, now we can finally start doing something interesting...
-  var runOptions = {};
-  Async.eachSeries(argv.apps,
-    function(app, nextApp) {
-      Async.eachSeries(argv.os,
-        function(os, nextOS) {
-          runOptions.os = os;
-          runOptions.app  = app;
-          runOptions.buildDir  = buildDir;
-          Build.appify(os, app, buildDir, argv.verbose, nextOS);
-        },
-        nextApp);
-    },
-    function(err) {
-      if (err)
-        exitWithError(err);
-      if (!argv.run) {
-        console.log("Finished");
-        process.exit();
-      }
-      runApp(runOptions)
-    });
-}
-
-function runApp(runOptions) {
+function run(runOptions) {
   console.log("Start running:" + JSON.stringify(runOptions));
   var finalBinaryPath = runOptions.os.finalBinaryPath;
 

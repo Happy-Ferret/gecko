@@ -1,2 +1,3 @@
-call node %~dp0bin\gecko.js %*
-pause
+@echo off
+cd /d "%~dp0"
+cmd /k
