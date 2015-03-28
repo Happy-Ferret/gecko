@@ -205,28 +205,18 @@ this.AppHarness.prototype = {
   },
 
   buildLoader: function() {
-    let options = this.options;
+    let packages = this.packages;
 
-    for (let name in options.resources) {
-      let path = options.resources[name];
-      let dir;
-      if (typeof path == "string") {
-        dir = getDir(path);
-      } else if (Array.isArray(path)) {
-        dir = this.rootPath.clone();
-        path.forEach(part => dir.append(part));
-        ensureIsDir(dir);
-      } else {
-        // Invalid type for path, just continue.
-        continue;
-      }
+    for (let name in packages.resources) {
+      let path = packages.resources[name];
+      let dir = getDir(path);
       let dirUri = IOService.newFileURI(dir);
       this.resourceProtocol.setSubstitution(name, dirUri);
     }
 
     let ns = Cu.import('resource://gre/modules/commonjs/toolkit/loader.js', {}).Loader;
     let loader = ns.Loader({
-      paths: ns.override({}, options.paths),
+      paths: ns.override({}, packages.paths),
       globals: {
         console: console,
         multiline: multiline
@@ -235,7 +225,7 @@ this.AppHarness.prototype = {
         "toolkit/loader": ns
       },
       resolve: function(id, base) {
-        id = options.mappings[id] || id;
+        id = packages.mappings[id] || id;
         return ns.resolve(id, base);
       }
     });
@@ -273,8 +263,7 @@ this.AppHarness.prototype = {
       this._loader = null;
     }
 
-    let options = this.options;
-    for (let name in options.resources)
+    for (let name in this.packages.resources)
       this.resourceProtocol.setSubstitution(name, null);
   },
 
@@ -296,13 +285,13 @@ this.AppHarness.prototype = {
 
 function ensureExist(path) {
   if (!path.exists()) {
-    throw new Error("path not exist: " + path.path);
+    throw new Error("directory not found: " + path.path);
   }
 }
 
 function ensureIsDir(path) {
   if (!path.isDirectory)
-    throw new Error("path is not directory: " + path.path);
+    throw new Error("directory not found: " + path.path);
 }
 
 function getDir(path) {
