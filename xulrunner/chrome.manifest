@@ -1,15 +1,18 @@
+component {2be81629-4ac1-4725-bc78-c4a396de103d} components/xpcom-startup.js
+contract @mozilla.org/gecko-shell/xpcom-startup;1 {2be81629-4ac1-4725-bc78-c4a396de103d}
+category xpcom-startup GeckoShell @mozilla.org/gecko-shell/xpcom-startup;1
+
 component {6724fc1b-3ec4-40e2-8583-8061088b3185} components/app-startup.js
-contract @mozilla.org/sdk/app-startup;1 {6724fc1b-3ec4-40e2-8583-8061088b3185}
-category app-startup sdk @mozilla.org/sdk/app-startup;1
+contract @mozilla.org/gecko-shell/app-startup;1 {6724fc1b-3ec4-40e2-8583-8061088b3185}
+category app-startup GeckoShell service,@mozilla.org/gecko-shell/app-startup;1
 
 component {5f2c73b0-406a-4287-932d-a5e1af4ccb13} components/cli.js
-contract @mozilla.org/commandlinehandler/general-startup;1?type=chromeless {5f2c73b0-406a-4287-932d-a5e1af4ccb13}
+contract @mozilla.org/gecko-shell/commandlinehandler/general-startup;1?type=chromeless {5f2c73b0-406a-4287-932d-a5e1af4ccb13}
 #// https://developer.mozilla.org/en-US/docs/XPCOM_Interface_Reference/nsICommandLine
 #// https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsICommandLineHandler
-# Using a-chromeless to make sure gecko-shell to be the very first command line handler and 
+# Using a-chromeless to make sure gecko-shell to be the very first command line handler and
 # skipping all other command line handlers
-
-category command-line-handler a-gecko-shell @mozilla.org/commandlinehandler/general-startup;1?type=chromeless
+category command-line-handler a-gecko-shell @mozilla.org/gecko-shell/commandlinehandler/general-startup;1?type=chromeless
 
 component {b6f6d8cf-ef2b-448b-a886-f3c991f8080a} components/app-glue.js
 contract @mozilla.org/content-permission/prompt;1 {b6f6d8cf-ef2b-448b-a886-f3c991f8080a}
