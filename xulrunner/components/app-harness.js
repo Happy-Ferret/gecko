@@ -12,6 +12,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://app-bootstrap/console.js");
 
+// To read & write content to file
+const {OS} = Cu.import("resource://gre/modules/osfile.jsm", {});
+
 XPCOMUtils.defineLazyServiceGetter(this, "IOService",
   "@mozilla.org/network/io-service;1", "nsIIOService");
 
@@ -34,14 +37,20 @@ this.AppHarness = function AppHarness() {
         "child_process": "sdk/system/child_process",
         "subprocess/index": "sdk/subprocess/index"
       },
+      "rootPath": "C:\\CI-Cor\\html-shell/gecko-shell",
       "resources": {
-        "test-resource": "test"
+        "test-resource": "src",
+        "test-resource2": "hsrc"
       }
     }
   */
   });
   let shellPackage = JSON.parse(packageString);
-  this.packages = {};
+  this.packages = {
+    paths:{},
+    mappings:{},
+    resources:{},
+  };
   this.updatePackages(this.packages, shellPackage);
   this.updatePackages(this.packages, this.getUserPackage());
 
@@ -64,10 +73,27 @@ this.AppHarness.prototype = {
     if (!packageInfo) {
       return;
     }
-    var rootPath = packageInfo.rootPath || this.rootPath.path;
-    for (let attributeName in ['paths', 'mappings', 'resources']) {
 
+    var rootPath =packageInfo.rootPath || this.rootPath.path;
+    var resources = packageInfo['resources'];
+    for (let k in resources) {
+      let path = OS.Path.normalize(OS.Path.join(rootPath, resources[k]));
+      if (!getPath(path).exists()) {
+        console.warn("directory not found: " + path);
+      } else {
+        packages['resources'][k] = path;
+      }
     }
+    for (let attributeName in {paths: {},mappings: {}}) {
+      let attributeValue = packageInfo[attributeName];
+      for (let k in attributeValue) {
+        packages[attributeName][k] = attributeValue[k];
+      }
+    }
+  },
+
+  getUserPackage: function() {
+    return null;
   },
 
   get options() {
@@ -270,29 +296,27 @@ this.AppHarness.prototype = {
 
 function ensureExist(path) {
   if (!path.exists()) {
-    throw new Error("directory not found: " + dir.path);
+    throw new Error("path not exist: " + path.path);
   }
 }
 
-function ensureIsDir(dir) {
-  if (!dir.isDirectory)
-    throw new Error("directory not found: " + dir.path);
+function ensureIsDir(path) {
+  if (!path.isDirectory)
+    throw new Error("path is not directory: " + path.path);
 }
 
 function getDir(path) {
-  let dir = Cc["@mozilla.org/file/local;1"]
-              .createInstance(Ci.nsILocalFile);
-  dir.initWithPath(path);
-  ensureExist(path)
+  let dir = getPath(path);
+  ensureExist(dir)
   ensureIsDir(dir);
   return dir;
 }
 
 function getPath(path) {
-  let dir = Cc["@mozilla.org/file/local;1"]
+  let f = Cc["@mozilla.org/file/local;1"]
               .createInstance(Ci.nsILocalFile);
-  dir.initWithPath(path);
-  return dir;
+  f.initWithPath(path);
+  return f;
 }
 
 function defaultLogError(e, print) {
