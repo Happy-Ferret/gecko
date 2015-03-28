@@ -43,7 +43,7 @@ CliHandler.prototype = {
     if (!this._harness) {
       this._harness = new ns.AppHarness();
       savedArgv = argv;
-      this._harness.load(null, argv);
+      this._harness.load(savedArgv);
     } else {
       this._harness.onCommand(argv);
     }

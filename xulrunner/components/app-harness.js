@@ -26,7 +26,8 @@ this.AppHarness = function AppHarness() {
         "sdk/": "resource://gre/modules/commonjs/sdk/",
         "toolkit/": "resource://gre/modules/commonjs/toolkit/",
         "gre/": "resource://gre/modules/",
-        "": "resource:///modules/"
+        "modules": "resource:///modules/",
+        "": "resource://"
       },
       "mappings": {
         "path": "sdk/fs/path",
@@ -37,14 +38,13 @@ this.AppHarness = function AppHarness() {
         "child_process": "sdk/system/child_process",
         "subprocess/index": "sdk/subprocess/index"
       },
-      "rootPath": "C:\\CI-Cor\\html-shell/gecko-shell",
       "resources": {
-        "test-resource": "src",
-        "test-resource2": "hsrc"
+        "test-gecko-shell-resource": "test"
       }
     }
   */
   });
+  /* No / in resources name */
   let shellPackage = JSON.parse(packageString);
   this.packages = {
     paths:{},
@@ -52,15 +52,12 @@ this.AppHarness = function AppHarness() {
     resources:{},
   };
   this.updatePackages(this.packages, shellPackage);
-  this.updatePackages(this.packages, this.getUserPackage());
-
-  this._options = this.initOptions();
 };
 
 this.AppHarness.prototype = {
   _started : false,
   _quitting: false,
-  _options : null,
+  options : null,
   _rootPath: null,
   _loader  : null,
   _resProto: null,
@@ -68,6 +65,42 @@ this.AppHarness.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
+
+  readAsText: function(filePath, encoding="UTF-8", limit=(1<<20)) {
+    // |file| is nsIFile
+    var file = getPath(filePath);
+    if (!file.exists || file.isDirectory()) {
+      return null;
+    }
+
+    var data = "";
+    var fstream = Components.classes["@mozilla.org/network/file-input-stream;1"].
+                  createInstance(Components.interfaces.nsIFileInputStream);
+    var cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"].
+                  createInstance(Components.interfaces.nsIConverterInputStream);
+    fstream.init(file, -1, 0, 0);
+    cstream.init(fstream, "UTF-8", 0, 0); // you can use another encoding here if you wish
+
+    let (str = {}) {
+      let read = 0;
+      do {
+        read = cstream.readString(0x100000, str); // read as much as we can and put it in str.value
+        data += str.value;
+        if (limit > 0 && data.length > limit) {
+          break;
+        }
+      } while (read != 0);
+    }
+    cstream.close(); // this closes fstream
+    return data;
+  },
+  get currentWorkingDirectory() {
+    //https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIDirectoryService
+    //https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIProperties
+    return Components.classes["@mozilla.org/file/directory_service;1"]
+                 .getService(Components.interfaces.nsIProperties)
+                 .get("CurWorkD", Components.interfaces.nsIFile).path;
+  },
 
   updatePackages: function(packages, packageInfo) {
     if (!packageInfo) {
@@ -84,7 +117,7 @@ this.AppHarness.prototype = {
         packages['resources'][k] = path;
       }
     }
-    for (let attributeName in {paths: {},mappings: {}}) {
+    for (let attributeName in {paths:{}, mappings:{}}) {
       let attributeValue = packageInfo[attributeName];
       for (let k in attributeValue) {
         packages[attributeName][k] = attributeValue[k];
@@ -92,12 +125,54 @@ this.AppHarness.prototype = {
     }
   },
 
-  getUserPackage: function() {
-    return null;
+  getAppPath: function(argv) {
+    var appPath = null;
+    while (argv.length > 0) {
+      let path = OS.Path.normalize(OS.Path.join(this.currentWorkingDirectory, argv.shift()));
+      let nsPath = getPath(path);
+      if (nsPath.exists() && !nsPath.isDirectory()) {
+        appPath = path;
+        break;
+      }
+    }
+    return appPath;
   },
 
-  get options() {
-    return this._options;
+  getAppConfig: function(appPath) {
+    let path = getPath(appPath);
+    let leafName = path.leafName;
+    path = path.parent;
+    let resourcePath = path.path;
+    let packageInfo = {
+    };
+    let rootPath = null;
+    while (path) {
+      let p = path.clone();
+      p.append('package.json');
+      if (p.exists() && !p.isDirectory()) {
+        try {
+          let text = this.readAsText(p.path);
+          let packageJson = JSON.parse(text);
+          if (typeof packageJson['gecko-modules'] === 'object') {
+            packageInfo = packageJson['gecko-modules'];
+            rootPath = path.path;
+          }
+        } catch (err) {
+        }
+      }
+      path = path.parent;
+    }
+    for (let attributeName in {paths:{}, mappings:{}, resouces:{},} ) {
+      if (typeof packageInfo[attributeName] !== 'object') {
+        packageInfo[attributeName] = {};
+      }
+    }
+    packageInfo.resources['gecko-shell-app-path'] = resourcePath;
+    packageInfo.rootPath = rootPath;
+    return {
+      modulePath: "resource://gecko-shell-app-path/" + leafName,
+      packageInfo: packageInfo,
+    }
   },
 
   initOptions: function(uuid, logFilePath) {
@@ -166,35 +241,44 @@ this.AppHarness.prototype = {
     }
   },
 
-  load: function(mainModule, argv) {
+  load: function(argv) {
     if (this._started)
       return;
 
     this._started = true;
-    Services.obs.addObserver(this, "quit-application-granted", true);
-    let options = this.options;
-    if (!mainModule) {
-      console.log("Warning: Please specify the main js module or index.html in app dir!");
-      this.quit("FAIL");
+
+    this.options = this.initOptions();
+    this.appPath = this.getAppPath(argv);
+
+    if (!this.appPath) {
+      console.warn("Please specify the main js in app dir!");
       return;
     }
 
+    this.appConfig = this.getAppConfig(this.appPath);
+    this.updatePackages(this.packages, this.appConfig.packageInfo);
+
+
+    Services.obs.addObserver(this, "quit-application-granted", true);
+
     try {
-      this._app = this.loader.main(this.loader.instance, mainModule);
-      if (typeof this._app.onLoad == "function") {
-        this._app.onLoad(options);
-      }
+      // Send application prepare notification.
+      Services.obs.notifyObservers(null, 'gecko-shell-prepare', null);
+      Services.obs.notifyObservers(null, 'gecko-shell-prepare-' + this.options.jetpackID, null);
+
+      this._app = this.loader.main(this.loader.instance, this.appConfig.modulePath);
 
       if (typeof this._app.main == "function") {
         this._app.main(argv);
       }
 
       // Send application readiness notification.
-      const APP_READY_TOPIC = options.jetpackID + "_APPLICATION_READY";
-      Services.obs.notifyObservers(null, APP_READY_TOPIC, null);
+      Services.obs.notifyObservers(null, 'gecko-shell-ready', null);
+      Services.obs.notifyObservers(null, 'gecko-shell-ready-' + this.options.jetpackID, null);
     } catch (ex) {
       defaultLogError(ex, this.options.dump);
       this.quit("FAIL");
+      return;
     }
   },
 
@@ -290,7 +374,7 @@ function ensureExist(path) {
 }
 
 function ensureIsDir(path) {
-  if (!path.isDirectory)
+  if (!path.isDirectory())
     throw new Error("directory not found: " + path.path);
 }
 

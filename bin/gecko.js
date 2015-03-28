@@ -118,14 +118,16 @@ Mkdirp(buildDir, function(err) {
 });
 
 function run(runOS) {
-  console.log("Start running:" + JSON.stringify(runOS));
   var finalBinaryPath = runOS.finalBinaryPath;
   var args = [].concat(['-purgecaches'], argv.args);
+
+  var running = [].concat([runOS.finalBinaryPath], args, ['in', process.cwd()]);
+  console.log("Start running:" +  running.join(" "));
 
   var child = child_process.spawn(finalBinaryPath, args, {
     detached: true,
     env: process.env,
-    cwd: Path.dirname(finalBinaryPath),
+    cwd: process.cwd(),
   });
   child.stdout.setEncoding('utf8');
   child.stdout.on('data', function(data) {
