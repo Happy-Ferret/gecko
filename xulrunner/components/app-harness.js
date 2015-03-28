@@ -185,7 +185,8 @@ this.AppHarness.prototype = {
     let loader = ns.Loader({
       paths: ns.override({}, options.paths),
       globals: {
-        console: Console
+        console: Console,
+        multiline: multiline
       },
       modules: {
         "toolkit/loader": ns

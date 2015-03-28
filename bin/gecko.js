@@ -32,7 +32,6 @@ commander
                   "'windows', 'linux' and 'osx'", Util.sanitizeOS, Util.sanitizeOS())
   .option('-c, check', 'Check Build & Package dependencies')
   .option('-v, --verbose', 'Show verbose logging information.')
-  .option('--app [path]' , 'The running application directory.', Util.sanitizeApp)
   .on('--help', function() {
     console.log('  Gecko Shell v' + commander._version +'\n');
   })
