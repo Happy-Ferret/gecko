@@ -89,7 +89,7 @@
       }
     }
   },
-  "modules": [
+  "gecko-modules": [
     {
       "prefix": [""],
       "path": ["modules/sdk"],
