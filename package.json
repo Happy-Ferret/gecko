@@ -89,13 +89,15 @@
       }
     }
   },
-  "gecko-modules": [
-    {
-      "prefix": ["bolt"],
-      "path": ["src"],
-      "exclude": [],
-      "include": [],
-      "preprocess": ["api-utils.js", "ui.js"]
+  "gecko-modules": {
+    "paths": {
+      "bolt/": "resource://test-bolt/"
+    },
+    "mappings": {
+      "test/bolt": "bolt/test"
+    },
+    "resources": {
+      "test-bolt": "src"
     }
-  ]
+  }
 }

@@ -120,8 +120,9 @@ Mkdirp(buildDir, function(err) {
 function run(runOS) {
   console.log("Start running:" + JSON.stringify(runOS));
   var finalBinaryPath = runOS.finalBinaryPath;
+  var args = [].concat(['-purgecaches'], argv.args);
 
-  var child = child_process.spawn(finalBinaryPath, argv.args, {
+  var child = child_process.spawn(finalBinaryPath, args, {
     detached: true,
     env: process.env,
     cwd: Path.dirname(finalBinaryPath),

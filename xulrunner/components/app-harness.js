@@ -16,13 +16,13 @@ XPCOMUtils.defineLazyServiceGetter(this, "IOService",
   "@mozilla.org/network/io-service;1", "nsIIOService");
 
 this.AppHarness = function AppHarness() {
-  let optionString = multiline(function(){
+  let packageString = multiline(function(){
   /*
     {
-      "loader": "resource://gre/modules/commonjs/toolkit/loader.js",
       "paths": {
         "sdk/": "resource://gre/modules/commonjs/sdk/",
         "toolkit/": "resource://gre/modules/commonjs/toolkit/",
+        "gre/": "resource://gre/modules/",
         "": "resource:///modules/"
       },
       "mappings": {
@@ -35,12 +35,17 @@ this.AppHarness = function AppHarness() {
         "subprocess/index": "sdk/subprocess/index"
       },
       "resources": {
+        "test-resource": "test"
       }
     }
   */
   });
-  this._options = JSON.parse(optionString);
-  this.initOptions(this._options);
+  let shellPackage = JSON.parse(packageString);
+  this.packages = {};
+  this.updatePackages(this.packages, shellPackage);
+  this.updatePackages(this.packages, this.getUserPackage());
+
+  this._options = this.initOptions();
 };
 
 this.AppHarness.prototype = {
@@ -55,11 +60,22 @@ this.AppHarness.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
 
+  updatePackages: function(packages, packageInfo) {
+    if (!packageInfo) {
+      return;
+    }
+    var rootPath = packageInfo.rootPath || this.rootPath.path;
+    for (let attributeName in ['paths', 'mappings', 'resources']) {
+
+    }
+  },
+
   get options() {
     return this._options;
   },
 
-  initOptions: function(options, uuid, logFilePath) {
+  initOptions: function(uuid, logFilePath) {
+    let options = {};
     options.jetpackID = uuid;
     options.bundleID = uuid;
     let logFile, logStream;
@@ -88,6 +104,7 @@ this.AppHarness.prototype = {
     options.rootPath = this.rootPath;
     options.dump = print;
     options.logError = logError;
+    return options;
   },
 
   get loader() {
@@ -131,7 +148,7 @@ this.AppHarness.prototype = {
     Services.obs.addObserver(this, "quit-application-granted", true);
     let options = this.options;
     if (!mainModule) {
-      Console.log("Warning: Please specify the main js module or index.html in app dir!");
+      console.log("Warning: Please specify the main js module or index.html in app dir!");
       this.quit("FAIL");
       return;
     }
@@ -181,11 +198,11 @@ this.AppHarness.prototype = {
       this.resourceProtocol.setSubstitution(name, dirUri);
     }
 
-    let ns = Cu.import(options.loader, {}).Loader;
+    let ns = Cu.import('resource://gre/modules/commonjs/toolkit/loader.js', {}).Loader;
     let loader = ns.Loader({
       paths: ns.override({}, options.paths),
       globals: {
-        console: Console,
+        console: console,
         multiline: multiline
       },
       modules: {
@@ -251,8 +268,14 @@ this.AppHarness.prototype = {
   }
 };
 
+function ensureExist(path) {
+  if (!path.exists()) {
+    throw new Error("directory not found: " + dir.path);
+  }
+}
+
 function ensureIsDir(dir) {
-  if (!dir.exists() || !dir.isDirectory)
+  if (!dir.isDirectory)
     throw new Error("directory not found: " + dir.path);
 }
 
@@ -260,7 +283,15 @@ function getDir(path) {
   let dir = Cc["@mozilla.org/file/local;1"]
               .createInstance(Ci.nsILocalFile);
   dir.initWithPath(path);
+  ensureExist(path)
   ensureIsDir(dir);
+  return dir;
+}
+
+function getPath(path) {
+  let dir = Cc["@mozilla.org/file/local;1"]
+              .createInstance(Ci.nsILocalFile);
+  dir.initWithPath(path);
   return dir;
 }
 

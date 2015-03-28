@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-this.EXPORTED_SYMBOLS = ["Console", "multiline"];
+this.EXPORTED_SYMBOLS = ["console", "multiline"];
 
 const _slice = Array.prototype.slice;
 
@@ -211,8 +211,7 @@ console.error = console.warn;
 
 // start matching after: comment start block => ! or @preserve => optional whitespace => newline
 // stop matching before: last newline => optional whitespace => comment end block
-let reCommentContents = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)[ \t]*\*\//;
-
+let reCommentContents = /\/\*!?(?:\@preserve)?\s*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)\s*\*\//;
 let multiline = function (fn) {
   if (typeof fn !== 'function') {
     throw new TypeError('Expected a function');
@@ -227,5 +226,5 @@ let multiline = function (fn) {
   return match[1];
 };
 
-this.Console = console;
+this.console = console;
 this.multiline = multiline;
