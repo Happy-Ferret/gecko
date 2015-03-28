@@ -91,8 +91,8 @@
   },
   "gecko-modules": [
     {
-      "prefix": [""],
-      "path": ["modules/sdk"],
+      "prefix": ["bolt"],
+      "path": ["src"],
       "exclude": [],
       "include": [],
       "preprocess": ["api-utils.js", "ui.js"]
