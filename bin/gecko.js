@@ -119,7 +119,7 @@ Mkdirp(buildDir, function(err) {
 
 function run(runOS) {
   var finalBinaryPath = runOS.finalBinaryPath;
-  var args = [].concat(['-purgecaches'], argv.args);
+  var args = [].concat(['-attach-console', '-purgecaches'], argv.args);
 
   var running = [].concat([runOS.finalBinaryPath], args, ['in', process.cwd()]);
   console.log("Start running:" +  running.join(" "));
